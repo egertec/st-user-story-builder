@@ -973,22 +973,27 @@ export default function App() {
             </div>
           </div>
 
-          {/* One-click copy all */}
+          {/* Navigation + copy all */}
           <div className="mb-6">
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(generatedPrompt);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2500);
-              }}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                copied
-                  ? "bg-emerald-50 border-2 border-emerald-300 text-emerald-700"
-                  : "bg-slate-900 border-2 border-slate-900 text-white hover:bg-slate-700"
-              }`}
-            >
-              {copied ? <><Check size={16} /> Copied! Now paste into claude.ai</> : <><Copy size={16} /> Copy Full Prompt to Clipboard</>}
-            </button>
+            <div className="flex gap-3 mb-3">
+              <Button variant="outline" className="h-11" onClick={() => setView("cloud-select")}>
+                ← Back
+              </Button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(generatedPrompt);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2500);
+                }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  copied
+                    ? "bg-emerald-50 border-2 border-emerald-300 text-emerald-700"
+                    : "bg-slate-900 border-2 border-slate-900 text-white hover:bg-slate-700"
+                }`}
+              >
+                {copied ? <><Check size={16} /> Copied! Now paste into claude.ai</> : <><Copy size={16} /> Copy Full Prompt to Clipboard</>}
+              </button>
+            </div>
             <p className="text-center text-[11px] text-slate-400 mt-2">
               Open <a href="https://claude.ai" target="_blank" rel="noreferrer" className="text-blue-600 underline">claude.ai</a>, start a new conversation, and paste the full prompt.
             </p>

@@ -105,11 +105,18 @@ Example — CORRECT approach (consolidated):
   AC: User can flag the account for Master Data Team review if unsure
   AC: System navigates to the appropriate record based on user's choice
 
-ACTOR ACCURACY RULE:
-When a process step describes an AUTOMATED system action (keywords: "automatically", "auto-", "system triggers", "system creates", "system assigns", "system routes", "system notifies"), use "System" as the actor — NOT a human user. A Sales Rep does not "want" the system to auto-assign something; the system performs the action autonomously. Reserve human actors for steps where the human initiates or decides.
+ACTOR / PERSONA RULE (CRITICAL — follow strictly):
+The actor in every user story should be a HUMAN persona that reflects who BENEFITS from or INITIATES the action — even for automated steps. The persona should align to the process flow swimlane that the step belongs to. For example, if a step is in the "Sales Representative" swimlane and the system automatically assigns a territory, the actor is still "Sales Representative" because they are the beneficiary: "As a Sales Representative, I want the system to automatically assign territory based on account attributes, so that I can begin outreach without manual territory lookup."
+
+"System" as an actor is an EDGE CASE reserved ONLY for stories where:
+- There is genuinely NO human persona who benefits (e.g., a nightly batch job with no user-facing outcome)
+- The step is purely infrastructure/technical with no business user context
+- No swimlane or persona can be reasonably inferred
+
+In ALL other cases — including automated triggers, system notifications, auto-assignments, validation rules, and integration syncs — frame the story from the perspective of the human user who benefits from the automation. The pattern is: "As a [Persona from swimlane], I want [the system to perform automated action], so that [business benefit to that persona]."
 
 For each distinct process step or subprocess identified, create one or more user stories covering:
-1. The primary actor performing the step (use functional group personas as specified in the guide)
+1. The primary actor performing or benefiting from the step (use the persona that matches the process swimlane — e.g., "Sales Representative", "CRM Administrator", "Marketing Manager")
 2. Any secondary actors or approvers involved
 3. Visibility/reporting needs for managers or supervisors
 4. Exception handling or error conditions where clearly implied
@@ -152,11 +159,11 @@ You are receiving MULTIPLE process flows that are variants or related processes 
 DECISION PATH CONSOLIDATION RULE:
 When a process step contains a decision point with multiple outcomes (e.g., duplicate found vs not found, approved vs rejected), DO NOT create separate stories for each path. Create ONE story for the decision milestone with each outcome as acceptance criteria. Only split if alternate paths involve DIFFERENT actors or DISTINCT business rules.
 
-ACTOR ACCURACY RULE:
-For AUTOMATED system actions (keywords: "automatically", "auto-", "system triggers", "system creates", "system assigns"), use "System" as the actor — NOT a human user.
+ACTOR / PERSONA RULE (CRITICAL — follow strictly):
+The actor in every user story should be a HUMAN persona that reflects who BENEFITS from or INITIATES the action — even for automated steps. The persona should align to the process flow swimlane that the step belongs to. "System" as an actor is an EDGE CASE reserved ONLY for stories where there is genuinely NO human persona who benefits (e.g., nightly batch jobs with no user-facing outcome). For automated triggers, notifications, auto-assignments, and integration syncs, frame the story from the perspective of the human user who benefits: "As a [Persona from swimlane], I want [the system to perform automated action], so that [business benefit to that persona]."
 
 For each distinct process step or subprocess, create user stories covering:
-1. The primary actor (functional group personas)
+1. The primary actor performing or benefiting from the step (use the persona that matches the process swimlane)
 2. Secondary actors or approvers
 3. Visibility/reporting needs
 4. Exception handling
