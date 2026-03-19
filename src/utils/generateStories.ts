@@ -22,6 +22,43 @@ export interface GenerateOptions {
   onProgress?: (message: string) => void;
 }
 
+const INTAKE_INTERVIEW_INSTRUCTIONS = `Before generating any user stories, complete the following steps in order.
+
+**Step 1 — Process Flow Analysis**
+
+Read and fully digest the process flow content provided. Identify all areas where you have low confidence that generated user stories will accurately reflect true business requirements. Low confidence signals include:
+- Ambiguous or multiple possible actors for a step
+- Undefined system behaviors or integration touchpoints
+- Decision branches where the outcome logic is unclear
+- Process steps that appear to be placeholders or incomplete
+- Terminology that could mean different things across teams or systems
+
+**Step 2 — Generate a Targeted Intake Interview**
+
+Before asking any questions, introduce the interview with a brief message: "Before I generate user stories from this process flow, I need to ask a few clarifying questions to make sure the stories reflect the right scope, actors, and business logic. This should only take a minute."
+
+Then, based on your analysis, generate a concise intake interview covering only the gaps you identified. Rules:
+- Maximum 5 questions total. Prioritize ruthlessly — only ask what would materially change a user story's actor, scope, acceptance criteria, or edge cases
+- Use multiple choice for any question with 3–5 predictable answers. Format as: A) / B) / C) etc.
+- Use free text only when the answer space is too broad for options (limit to 2 free text questions max)
+- Label each question with the process step or area it relates to (e.g., Re: Step 4.2 — Consent Capture)
+- Do not ask questions whose answers are already clearly stated in the process flow
+
+**Step 3 — Confirm Before Generating**
+
+After the user responds, output a confirmation block: "Based on your responses, here's the additional context I'll apply to your user stories: [bullet summary of key assumptions]. Ready to generate — confirm or correct anything before I proceed."
+
+Only begin generating user stories after the user confirms.
+
+**Step 4 — Post-Generation Instructions**
+
+After all user stories have been generated, provide a brief closing message that includes:
+- A summary count of stories generated
+- A note that the stories reflect the assumptions confirmed during the intake interview
+- A reminder that the user can request edits, additions, or re-generation for any specific process step
+
+Once the user is satisfied with the output, instruct them to copy the generated user stories and paste them back into the User Story Generator tool to produce a clean, formatted Excel file.`;
+
 // Builds the combined prompt to paste into claude.ai
 // Supports single flow (processText) or multiple flows (processFlows[])
 // When multiple flows are provided, adds cross-flow deduplication instructions
@@ -33,7 +70,18 @@ export function buildCopyablePrompt(processText: string, cloudKey: string, clari
   const userMessage = isMultiFlow
     ? buildMultiFlowUserMessage(processFlows, cloudName)
     : buildUserMessage(processText, cloudName);
-  return `${systemPrompt}\n\n---\n\n${userMessage}`;
+
+  // Replace the immediate JSON generation instruction with a deferred one
+  // so Claude completes the intake interview before outputting stories.
+  // NOTE: buildUserMessage and buildMultiFlowUserMessage are intentionally
+  // kept with their original endings so the API path (generateStoriesFromText)
+  // is unaffected — only the copy-paste path gets the deferral.
+  const userMessageWithDeferral = userMessage.replace(
+    "Return ONLY a valid JSON array of user story objects as specified. No other text.",
+    "Once you have completed Steps 1–3 above and received user confirmation, return ONLY a valid JSON array of user story objects as specified. No other text."
+  );
+
+  return `${INTAKE_INTERVIEW_INSTRUCTIONS}\n\n---\n\n${systemPrompt}\n\n---\n\n${userMessageWithDeferral}`;
 }
 
 // Parses raw JSON text pasted back from claude.ai into UserStory[]
@@ -74,14 +122,11 @@ export function parseStoriesFromJSON(raw: string): UserStory[] {
 export function buildSystemPrompt(cloudKey: string, clarifyContext?: string): string {
   const cloud = SALESFORCE_CLOUDS.find((c) => c.key === cloudKey);
   const cloudAddition = cloud?.systemPromptAddition ?? "";
-
   // Inject reference context from localStorage if available
   const refContext = loadReferenceContext();
   const refSection = refContext ? `\n\n${refContext}` : "";
-
   // Inject user clarifications if provided
   const clarifySection = clarifyContext ? `\n\n${clarifyContext}` : "";
-
   return BASE_SYSTEM_PROMPT + "\n\n" + cloudAddition + refSection + clarifySection;
 }
 
@@ -175,7 +220,6 @@ Return ONLY a valid JSON array of user story objects as specified. No other text
 }
 
 // ─── Reference Context (Guide + Example Stories) ──────────────────────────────
-
 const REFS_KEY = "storyforge_references";
 
 export interface ReferenceContext {
@@ -281,22 +325,18 @@ export function clearReferenceContext(): void {
 }
 
 // ─── API-based generation (unchanged except story points removed) ─────────────
-
 export async function generateStoriesFromText(
   options: GenerateOptions
 ): Promise<UserStory[]> {
   const { processText, cloudKey, apiKey, clarifyContext, onProgress } = options;
-
   const cloud = SALESFORCE_CLOUDS.find((c) => c.key === cloudKey);
   const cloudName = cloud?.name ?? "Salesforce";
 
   onProgress?.("Preparing process flow for analysis...");
-
   const systemPrompt = buildSystemPrompt(cloudKey, clarifyContext);
   const userMessage = buildUserMessage(processText, cloudName);
 
   onProgress?.("Calling Claude API to generate user stories...");
-
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -321,7 +361,6 @@ export async function generateStoriesFromText(
   }
 
   onProgress?.("Processing Claude response...");
-
   const data = await response.json();
   const rawText: string = data.content?.[0]?.text ?? "";
   const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
@@ -339,7 +378,6 @@ export async function generateStoriesFromText(
   }
 
   onProgress?.("Finalizing and numbering stories...");
-
   let counter = 1;
   const stories: UserStory[] = (parsed as Record<string, unknown>[]).map((raw) => ({
     id: `US-${String(counter++).padStart(3, "0")}`,
