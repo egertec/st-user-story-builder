@@ -31,8 +31,8 @@ export function exportToExcel(stories: UserStory[], filename = "User_Story_Catal
     .map((s, i) => {
       const cs = i % 2 === 0 ? cellStyle : altStyle;
       const ac = s.acceptanceCriteria
-        .map((c, idx) => `${idx + 1}. ${c}`)
-        .join("&#10;");
+        .map((c, idx) => `${idx + 1}. ${esc(c)}`)
+        .join("<br>");
       const priorityColor =
         s.priority === "High"
           ? "#fee2e2"
