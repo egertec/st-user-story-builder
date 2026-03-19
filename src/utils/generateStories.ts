@@ -57,7 +57,7 @@ After all user stories have been generated, provide a brief closing message that
 - A note that the stories reflect the assumptions confirmed during the intake interview
 - A reminder that the user can request edits, additions, or re-generation for any specific process step
 
-Once the user is satisfied with the output, instruct them to copy the generated user stories and paste them back into the User Story Generator tool to produce a clean, formatted Excel file.`;
+Then output the JSON array in a code block (wrapped in \`\`\`json ... \`\`\`) so it is easy to copy. Do NOT offer the output as a downloadable file of any kind — the user must copy the raw JSON text from the code block and paste it back into the User Story Generator tool to produce a clean, formatted Excel file.`;
 
 // Builds the combined prompt to paste into claude.ai
 // Supports single flow (processText) or multiple flows (processFlows[])
@@ -176,7 +176,6 @@ Return ONLY a valid JSON array of user story objects as specified. No other text
 }
 
 function buildMultiFlowUserMessage(flows: ProcessFlow[], cloudName: string): string {
-  // Build the flow sections
   const flowSections = flows.map((flow, i) => {
     return `PROCESS FLOW ${i + 1}: ${flow.name}
 ---
@@ -245,7 +244,6 @@ export function saveReferenceContext(ctx: Omit<ReferenceContext, "savedAt">): vo
 
 export function loadReferenceContext(): string | null {
   try {
-    // Try localStorage first (user overrides), fall back to built-in defaults
     let guideText = DEFAULT_GUIDE_TEXT;
     let examplesText = DEFAULT_EXAMPLES_TEXT;
     let practicesText = DEFAULT_PRACTICES_TEXT;
@@ -308,12 +306,11 @@ export function getReferenceContextMeta(): ReferenceContext | null {
   try {
     const raw = localStorage.getItem(REFS_KEY);
     if (raw) return JSON.parse(raw);
-    // Return defaults so the UI shows pre-loaded state
     return {
       guideName: DEFAULT_GUIDE_NAME,
       examplesName: DEFAULT_EXAMPLES_NAME,
       practicesName: DEFAULT_PRACTICES_NAME,
-      savedAt: 0, // 0 signals "built-in defaults"
+      savedAt: 0,
     };
   } catch {
     return null;
